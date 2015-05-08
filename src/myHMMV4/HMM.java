@@ -336,7 +336,7 @@ public class HMM {
 					}
 				}
 			}
-			for (int t = T - 2; t >= 0; t--) {				
+			for (int t = T - 2; t >= 0; t--) {
 				state_seq[t] = path[state_seq[t + 1]][t + 1];
 			}
 
