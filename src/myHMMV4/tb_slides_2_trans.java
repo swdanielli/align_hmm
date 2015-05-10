@@ -235,11 +235,6 @@ public class tb_slides_2_trans {
 						transObjs_train_tb, textbookModels, vocabSize, trainingStep,
 						ordinaryVocabSize, feaSelType, evaluation,
 						gammaDecayStyle + tDecayStyle, segmentType);
-				transObjs_train_slides = interpolate_tb_to_trans(tuneResult_tb,
-						transObjs_train_tb, textbookModels, interpolation_weight, 
-						transObjs_train_slides,	tbTransRatio, adaptVersion, vocabSize,
-						trainingStep, -1, 0, ordinaryVocabSize, feaSelType, evaluation,
-						segmentType).transObjs;
 				
 				tuneResults_slides.add(tuneResult_slides);
 				tuneResults_tb.add(tuneResult_tb);
@@ -274,11 +269,6 @@ public class tb_slides_2_trans {
 							slideDistributionSparseTest, interpolation_weight, transObjs_test_tb,
 							adaptVersion, vocabSize, trainingStep, -1, i, ordinaryVocabSize,
 							feaSelType, evaluation, segmentType).transObjs;
-					transObjs_test_slides = interpolate_tb_to_trans(
-							tuneResults_tb.get(co_train_iter), transObjs_test_tb, textbookModels,
-							interpolation_weight, transObjs_test_slides, tbTransRatio, adaptVersion,
-							vocabSize, trainingStep, -1, i, ordinaryVocabSize, feaSelType,
-							evaluation, segmentType).transObjs;
 				}
 
 				System.out.println("========== Co-train iter: " + (n_co_train_iter) + " ==========");
