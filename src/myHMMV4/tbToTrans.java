@@ -214,25 +214,16 @@ public class tbToTrans {
 			 * System.out.println(tuneResult.bestConfiguration[0].length);
 			 */
 			for (int i = 0; i < tuneResult.nConfigSet; i++) {
-				System.out.println("smoothing: "
-						+ tuneResult.bestConfiguration[i][0]);
-				System.out.println("slidesTransRatio: "
-						+ tuneResult.bestConfiguration[i][1]);
-				System.out.println("transitionDecayBackw: "
-						+ tuneResult.bestConfiguration[i][2]);
-				System.out.println("transitionDecayForw: "
-						+ tuneResult.bestConfiguration[i][3]);
-				System.out.println("initDecay: "
-						+ tuneResult.bestConfiguration[i][4]);
-				System.out.println("keywordWeight: "
-						+ tuneResult.bestConfiguration[i][5]);
-				System.out
-						.println("decayStyle: "
-								+ Integer
-										.toString((int) tuneResult.bestConfiguration[i][6])
+				System.out.println("smoothing: " + tuneResult.bestConfiguration[i][0]);
+				System.out.println("slidesTransRatio: " + tuneResult.bestConfiguration[i][1]);
+				System.out.println("transitionDecayBackw: " + tuneResult.bestConfiguration[i][2]);
+				System.out.println("transitionDecayForw: " + tuneResult.bestConfiguration[i][3]);
+				System.out.println("initDecay: " + tuneResult.bestConfiguration[i][4]);
+				System.out.println("keywordWeight: " + tuneResult.bestConfiguration[i][5]);
+				System.out.println("decayStyle: "
+								+ Integer.toString((int) tuneResult.bestConfiguration[i][6])
 								+ "_"
-								+ Integer
-										.toString((int) tuneResult.bestConfiguration[i][7]));
+								+ Integer.toString((int) tuneResult.bestConfiguration[i][7]));
 				System.out.println("segment_length: "
 						+ tuneResult.bestConfiguration[i][8]);
 
@@ -242,20 +233,16 @@ public class tbToTrans {
 							segmentType,
 							(int) tuneResult.bestConfiguration[i][8]));
 
+				@SuppressWarnings("unchecked")
 				double res[] = paramTune(
-						transObjArray_seg, textbookModels,
-						vocabSize, tuneResult.bestConfiguration[i][0],
-						trainingStep, tuneResult.bestConfiguration[i][1],
-						tbTransRatio, adaptVersion,
-						tuneResult.bestConfiguration[i][2],
-						tuneResult.bestConfiguration[i][3],
-						tuneResult.bestConfiguration[i][4],
-						verbose, ordinaryVocabSize,
+						transObjArray_seg, textbookModels, vocabSize, tuneResult.bestConfiguration[i][0], 
+						trainingStep, tuneResult.bestConfiguration[i][1], tbTransRatio, adaptVersion,
+						tuneResult.bestConfiguration[i][2],	tuneResult.bestConfiguration[i][3],
+						tuneResult.bestConfiguration[i][4], verbose, ordinaryVocabSize,
 						tuneResult.bestConfiguration[i][5],	1,
 						Integer.toString((int) tuneResult.bestConfiguration[i][6])
 								+ "_"
-								+ Integer
-										.toString((int) tuneResult.bestConfiguration[i][7]));
+								+ Integer.toString((int) tuneResult.bestConfiguration[i][7])).result;
 
 				result[i] += res[i];
 				if (verbose >= 1)
@@ -331,6 +318,7 @@ public class tbToTrans {
 		return tuneResult;
 	}
 
+	@SuppressWarnings("unchecked")
 	public static tuneConfiguration tuneTransition(
 			tuneConfiguration tuneResult, double smoothing,
 			double slidesTransRatio, double tbTransRatio, double adaptVersion,
@@ -347,7 +335,7 @@ public class tbToTrans {
 					vocabSize, smoothing, trainingStep, slidesTransRatio,
 					tbTransRatio, (int) adaptVersion, transitionDecayBackw,
 					transitionDecayForw, initDecay, -1, ordinaryVocabSize,
-					keywordWeight, evaluation, decayStyle);
+					keywordWeight, evaluation, decayStyle).result;
 			String tags[] = decayStyle.split("_");
 			tuneResult.updateConfiguration(
 					result,
@@ -366,7 +354,7 @@ public class tbToTrans {
 								(int) adaptVersion, transitionDecayBackw,
 								transitionDecayForw, initDecay, -1,
 								ordinaryVocabSize, keywordWeight, evaluation,
-								decayStyle);
+								decayStyle).result;
 						String tags[] = decayStyle.split("_");
 						tuneResult.updateConfiguration(
 								result,
@@ -384,13 +372,19 @@ public class tbToTrans {
 		return tuneResult;
 	}
 
-	public static double[] paramTune(List<TranscriptionClass> transObjArray,
+	public static Interpolate_result paramTune(List<TranscriptionClass> transObjArray,
 			List<TextbookClass> textbookArray, int vocabSize, double smoothing,
 			int trainingStep, double slidesTransRatio, double tbTransRatio,
 			int adaptVersion, double transitionDecayBackw,
 			double transitionDecayForw, double initDecay, int verbose,
 			int ordinaryVocabSize, double keywordWeight, int evaluation,
-			String decayStyle) {
+			String decayStyle, List<TranscriptionClass>... ref_trans_objs) {
+		List<TranscriptionClass> interpolated_trans = null;
+		boolean is_interpolation = false;
+		if (ref_trans_objs.length == 2) {
+			is_interpolation = true;
+			interpolated_trans = new ArrayList<TranscriptionClass>();
+		}
 		/* Training set */
 		if (verbose >= 1)
 			System.out.println("========== Start trans seg result ==========");
@@ -404,22 +398,21 @@ public class tbToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				TranscriptionClass interpolatedTrans = null;
-				if (slidesTransRatio == 0.0)
-					interpolatedTrans = transObjArray.get(i);
-				else
-					interpolatedTrans = transObjArray.get(i)
-							.slidesInterpolation(slidesTransRatio);
-
-				double result[] = null;
-				result = alignTB(interpolatedTrans, textbookArray, vocabSize,
-						smoothing, trainingStep, tbTransRatio, adaptVersion,
+				TranscriptionClass obs_trans_obj = null;
+				TranscriptionClass label_trans_obj = null;
+				if (is_interpolation) {
+					obs_trans_obj = ref_trans_objs[0].get(i);
+					label_trans_obj = ref_trans_objs[1].get(i);
+				}
+				Interpolate_result hmm_result = alignTB(transObjArray.get(i), textbookArray, 
+						vocabSize, smoothing, trainingStep, tbTransRatio, adaptVersion,
 						transitionDecayBackw, transitionDecayForw, initDecay,
 						verbose, ordinaryVocabSize, keywordWeight, evaluation,
-						decayStyle);
+						decayStyle, obs_trans_obj, label_trans_obj);
 
-				accSum += result[0];
-				sentNum += result[1];
+				accSum += hmm_result.result[0];
+				sentNum += hmm_result.result[1];
+				if (is_interpolation) interpolated_trans.add(hmm_result.transObjs.get(0));
 			}
 
 			if (verbose >= 0) {
@@ -433,17 +426,20 @@ public class tbToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				TranscriptionClass interpolatedTrans = transObjArray.get(i)
-						.slidesInterpolation(slidesTransRatio);
-
-				double result[] = null;
-				result = alignTB(interpolatedTrans, textbookArray, vocabSize,
-						smoothing, trainingStep, tbTransRatio, adaptVersion,
+				TranscriptionClass obs_trans_obj = null;
+				TranscriptionClass label_trans_obj = null;
+				if (is_interpolation) {
+					obs_trans_obj = ref_trans_objs[0].get(i);
+					label_trans_obj = ref_trans_objs[1].get(i);
+				}
+				Interpolate_result hmm_result = alignTB(transObjArray.get(i), textbookArray, 
+						vocabSize, smoothing, trainingStep, tbTransRatio, adaptVersion,
 						transitionDecayBackw, transitionDecayForw, initDecay,
 						verbose, ordinaryVocabSize, keywordWeight, evaluation,
-						decayStyle);
+						decayStyle, obs_trans_obj, label_trans_obj);
 
-				ll += result[0];
+				ll += hmm_result.result[0];
+				if (is_interpolation) interpolated_trans.add(hmm_result.transObjs.get(0));
 			}
 
 			if (verbose >= 0) {
@@ -454,15 +450,23 @@ public class tbToTrans {
 
 		if (verbose >= 1)
 			System.out.println("========== End trans seg result ==========");
-		return res;
+		return new Interpolate_result(interpolated_trans, res);
 	}
 
-	public static double[] alignTB(TranscriptionClass transObj,
+	public static Interpolate_result alignTB(TranscriptionClass transObj,
 			List<TextbookClass> textbookArray, int vocabSize, double smoothing,
 			int trainingStep, double tbTransRatio, int adaptVersion,
 			double transitionDecayBackw, double transitionDecayForw,
 			double initDecay, int verbose, int ordinaryVocabSize,
-			double keywordWeight, int evaluation, String decayStyle) {
+			double keywordWeight, int evaluation, String decayStyle, 
+			TranscriptionClass... ref_trans_obj) {
+		List<TranscriptionClass> interpolated_trans = null;
+		boolean is_interpolation = false;
+		if (ref_trans_obj.length == 2 && ref_trans_obj[0] != null && ref_trans_obj[1] != null) {
+			is_interpolation = true;
+			interpolated_trans = new ArrayList<TranscriptionClass>();
+		}
+		
 		int segWordsMax = 0; /* use all transcription for training */
 		String tags[] = decayStyle.split("_");
 		int initDecayVersion = Integer.parseInt(tags[0]);
@@ -581,6 +585,7 @@ public class tbToTrans {
 			score[0] = key;
 			stateSeq = resultMap.get(key);
 		}
+
 		if (verbose >= 1) {
 			double[][] alignedPosterior = hmmModel.computeStatePosterior(
 					transObj.observationId, transObj.observationCount);
@@ -591,14 +596,20 @@ public class tbToTrans {
 			transObj.printResult(stateSeqS, alignedPosterior);
 		}
 
+		if (is_interpolation) {
+			interpolated_trans.add(transObj.interpolate(stateSeq,
+					observationId, observationCount, ref_trans_obj[0],
+					ref_trans_obj[1]));
+		}
+
 		/* evaluation -> 1 accuracy; 0 likelihood */
 		if (evaluation == 1) {
 			String[] stateSeqS = new String[stateSeq.length];
 			for (int i = 0; i < stateSeq.length; i++)
 				stateSeqS[i] = sectionIdBuffer.get(stateSeq[i]); /* IMPORTANT */
-			return transObj.acc(stateSeqS);
+			return new Interpolate_result(interpolated_trans, transObj.acc(stateSeqS));
 		} else {
-			return score;
+			return new Interpolate_result(interpolated_trans, score);
 		}
 	}
 }

@@ -191,13 +191,14 @@ public class slidesToTrans {
 							segmentType,
 							(int) tuneResult.bestConfiguration[i][4]));
 
+				@SuppressWarnings("unchecked")
 				double res[] = paramTune(transObjArray_seg,
 						slideDistributionSparseTest, vocabSize,
 						tuneResult.bestConfiguration[i][0], trainingStep,
 						tuneResult.bestConfiguration[i][1], adaptVersion,
 						tuneResult.bestConfiguration[i][2], verbose,
 						ordinaryVocabSize, tuneResult.bestConfiguration[i][3],
-						1);
+						1).result;
 				result[i] += res[i];
 				if (verbose >= 1)
 					System.out
@@ -270,6 +271,7 @@ public class slidesToTrans {
 		return tuneResult;
 	}
 
+	@SuppressWarnings("unchecked")
 	public static tuneConfiguration tuneTransition(
 			tuneConfiguration tuneResult, double smoothing,
 			double slidesTransRatio, int adaptVersion, int isUseHMM,
@@ -282,7 +284,7 @@ public class slidesToTrans {
 			double result[] = paramTune(transObjArray,
 					slideDistributionSparseArray, vocabSize, smoothing,
 					trainingStep, slidesTransRatio, adaptVersion, transition,
-					-1, ordinaryVocabSize, keywordWeight, evaluation);
+					-1, ordinaryVocabSize, keywordWeight, evaluation).result;
 			tuneResult.updateConfiguration(result, new double[] { smoothing,
 					slidesTransRatio, transition, keywordWeight, seg_len });
 		} else {
@@ -292,7 +294,7 @@ public class slidesToTrans {
 						slideDistributionSparseArray, vocabSize, smoothing,
 						trainingStep, slidesTransRatio, adaptVersion,
 						transition, -1, ordinaryVocabSize, keywordWeight,
-						evaluation);
+						evaluation).result;
 				tuneResult.updateConfiguration(result, new double[] {
 						smoothing, slidesTransRatio, transition, keywordWeight,
 						seg_len });
@@ -302,11 +304,17 @@ public class slidesToTrans {
 		return tuneResult;
 	}
 
-	public static double[] paramTune(List<TranscriptionClass> transObjArray,
+	public static Interpolate_result paramTune(List<TranscriptionClass> transObjArray,
 			List<SlidesClass> slideDistributionSparseArray, int vocabSize,
 			double smoothing, int trainingStep, double slidesTransRatio,
-			int adaptVersion, double transition, int verbose,
-			int ordinaryVocabSize, double keywordWeight, int evaluation) {
+			int adaptVersion, double transition, int verbose, int ordinaryVocabSize,
+			double keywordWeight, int evaluation, List<TranscriptionClass>... ref_trans_objs) {
+		List<TranscriptionClass> interpolated_trans = null;
+		boolean is_interpolation = false;
+		if (ref_trans_objs.length == 2) {
+			is_interpolation = true;
+			interpolated_trans = new ArrayList<TranscriptionClass>();
+		}
 		/* Training set */
 		if (verbose >= 1)
 			System.out.println("========== Start trans seg result ==========");
@@ -320,15 +328,21 @@ public class slidesToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				double result[] = null;
-				result = alignSlides(transObjArray.get(i),
+				TranscriptionClass obs_trans_obj = null;
+				TranscriptionClass label_trans_obj = null;
+				if (is_interpolation) {
+					obs_trans_obj = ref_trans_objs[0].get(i);
+					label_trans_obj = ref_trans_objs[1].get(i);
+				}
+				Interpolate_result hmm_result = alignSlides(transObjArray.get(i),
 						slideDistributionSparseArray.get(i), vocabSize,
 						smoothing, trainingStep, slidesTransRatio,
 						adaptVersion, transition, verbose, ordinaryVocabSize,
-						keywordWeight, evaluation);
+						keywordWeight, evaluation, obs_trans_obj, label_trans_obj);
 
-				accSum += result[0];
-				sentNum += result[1];
+				accSum += hmm_result.result[0];
+				sentNum += hmm_result.result[1];
+				if (is_interpolation) interpolated_trans.add(hmm_result.transObjs.get(0));
 			}
 
 			if (verbose >= 0) {
@@ -342,14 +356,20 @@ public class slidesToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				double result[] = null;
-				result = alignSlides(transObjArray.get(i),
+				TranscriptionClass obs_trans_obj = null;
+				TranscriptionClass label_trans_obj = null;
+				if (is_interpolation) {
+					obs_trans_obj = ref_trans_objs[0].get(i);
+					label_trans_obj = ref_trans_objs[1].get(i);
+				}
+				Interpolate_result hmm_result = alignSlides(transObjArray.get(i),
 						slideDistributionSparseArray.get(i), vocabSize,
 						smoothing, trainingStep, slidesTransRatio,
 						adaptVersion, transition, verbose, ordinaryVocabSize,
-						keywordWeight, evaluation);
+						keywordWeight, evaluation, obs_trans_obj, label_trans_obj);
 
-				ll += result[0];
+				ll += hmm_result.result[0];
+				if (is_interpolation) interpolated_trans.add(hmm_result.transObjs.get(0));
 			}
 
 			if (verbose >= 0) {
@@ -360,14 +380,21 @@ public class slidesToTrans {
 
 		if (verbose >= 1)
 			System.out.println("========== End trans seg result ==========");
-		return res;
+		return new Interpolate_result(interpolated_trans, res);
 	}
 
-	public static double[] alignSlides(TranscriptionClass transObj,
-			SlidesClass slideDistributionSparse, int vocabSize,
-			double smoothing, int trainingStep, double slidesTransRatio,
-			int adaptVersion, double transition, int verbose,
-			int ordinaryVocabSize, double keywordWeight, int evaluation) {
+	public static Interpolate_result alignSlides(TranscriptionClass transObj, 
+			SlidesClass slideDistributionSparse, int vocabSize, double smoothing,
+			int trainingStep, double slidesTransRatio, int adaptVersion, double transition,
+			int verbose, int ordinaryVocabSize, double keywordWeight, int evaluation,
+			TranscriptionClass... ref_trans_obj) {
+		List<TranscriptionClass> interpolated_trans = null;
+		boolean is_interpolation = false;
+		if (ref_trans_obj.length == 2 && ref_trans_obj[0] != null && ref_trans_obj[1] != null) {
+			is_interpolation = true;
+			interpolated_trans = new ArrayList<TranscriptionClass>();
+		}
+		
 		int segWordsMax = 0; /* use all transcription for training */
 		HMM hmmModel = new HMM(slideDistributionSparse.observationId.length,
 				vocabSize, ordinaryVocabSize, keywordWeight, segWordsMax,
@@ -466,6 +493,7 @@ public class slidesToTrans {
 			score[0] = key;
 			stateSeq = resultMap.get(key);
 		}
+
 		if (verbose >= 1) {
 			double[][] alignedPosterior = hmmModel.computeStatePosterior(
 					transObj.observationId, transObj.observationCount);
@@ -475,15 +503,22 @@ public class slidesToTrans {
 				stateSeqS[i] = Integer.toString(stateSeq[i] + 1); /* IMPORTANT */
 			transObj.printResult(stateSeqS, alignedPosterior);
 		}
+		
+		if (is_interpolation) {
+			interpolated_trans.add(transObj.interpolate(stateSeq,
+					slideDistributionSparse.observationId,
+					slideDistributionSparse.observationCount, ref_trans_obj[0],
+					ref_trans_obj[1]));
+		}
 
 		/* evaluation -> 1 accuracy; 0 likelihood */
 		if (evaluation == 1) {
 			String[] stateSeqS = new String[stateSeq.length];
 			for (int i = 0; i < stateSeq.length; i++)
 				stateSeqS[i] = Integer.toString(stateSeq[i] + 1); /* IMPORTANT */
-			return transObj.acc(stateSeqS);
+			return new Interpolate_result(interpolated_trans, transObj.acc(stateSeqS));
 		} else {
-			return score;
+			return new Interpolate_result(interpolated_trans, score);
 		}
 	}
 }

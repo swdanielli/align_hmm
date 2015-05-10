@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -355,7 +356,7 @@ public class TranscriptionClass {
 			observationSlidesCount[i] = arrayArrayCntBufferSlides.get(i);
 	}
 
-	public TranscriptionClass slidesInterpolation(double slidesTransRatio) {
+	public TranscriptionClass compute_interpolation(double ratio) {
 		int newObservationId[][] = new int[observationId.length][];
 		double newObservationCount[][] = new double[observationCount.length][];
 
@@ -366,10 +367,10 @@ public class TranscriptionClass {
 					count.put(observationId[i][j],
 							count.get(observationId[i][j])
 									+ observationCount[i][j]
-									* (1 - slidesTransRatio));
+									* (1 - ratio));
 				} else {
 					count.put(observationId[i][j], observationCount[i][j]
-							* (1 - slidesTransRatio));
+							* (1 - ratio));
 				}
 			}
 
@@ -378,10 +379,10 @@ public class TranscriptionClass {
 					count.put(observationSlidesId[i][j],
 							count.get(observationSlidesId[i][j])
 									+ observationSlidesCount[i][j]
-									* slidesTransRatio);
+									* ratio);
 				} else {
 					count.put(observationSlidesId[i][j],
-							observationSlidesCount[i][j] * slidesTransRatio);
+							observationSlidesCount[i][j] * ratio);
 				}
 			}
 
@@ -397,9 +398,8 @@ public class TranscriptionClass {
 			newObservationCount[i] = arrayCntBuffer;
 		}
 
-		TranscriptionClass interpolatedTrans = new TranscriptionClass(truth,
-				newObservationId, newObservationCount, courseId);
-		return interpolatedTrans;
+		return new TranscriptionClass(truth, newObservationId,
+				newObservationCount, courseId);
 	}
 
 	/**
@@ -449,13 +449,66 @@ public class TranscriptionClass {
 		double[] result = { numAcc, numSent };
 		return result;
 	}
+	
+	public TranscriptionClass interpolate(int[] stateSeq, int[][] oId,
+			double[][] oCount, TranscriptionClass obs_trans_obj, TranscriptionClass label_trans_obj) {
+		List<ArrayList<Pair>> pairs_list = new ArrayList<ArrayList<Pair>>();
+		int top_n = 49; /* Pick the 50 most frequent words */
+
+		for (int state_idx = 0; state_idx < oId.length; state_idx++) {
+			Pair [] pairs_raw = new Pair[oId[state_idx].length];
+			for (int word_idx = 0; word_idx < oId[state_idx].length; word_idx++) {
+				pairs_raw[word_idx] = new Pair(oId[state_idx][word_idx], oCount[state_idx][word_idx]);
+			}
+			Arrays.sort(pairs_raw);
+
+			List<Pair> pairs = new ArrayList<Pair>();
+			double freq_th = 0.0;
+			for (int word_idx = 0; word_idx < pairs_raw.length; word_idx++) {
+				if (word_idx == top_n) freq_th = pairs_raw[word_idx].value;
+				if (pairs_raw[word_idx].value < freq_th) break;
+				pairs.add(pairs_raw[word_idx]);
+			}
+			pairs_list.add((ArrayList<Pair>)  pairs);
+		}
+
+		int interpolate_oId[][] = new int[label_trans_obj.truth.size()][];
+		double interpolate_oCount[][] = new double[label_trans_obj.truth.size()][];
+		int sent_idx = 0;
+		for (int chunk_idx = 0; chunk_idx < stateSeq.length; chunk_idx++) {
+			int n_words = pairs_list.get(stateSeq[chunk_idx]).size();
+			int[] oId_buffer = new int[n_words];
+			double[] oCount_buffer = new double[n_words];
+			for (int word_idx = 0; word_idx < n_words; word_idx++) {
+				oId_buffer[word_idx] = pairs_list.get(stateSeq[chunk_idx]).get(word_idx).id;
+				oCount_buffer[word_idx] = pairs_list.get(stateSeq[chunk_idx]).get(word_idx).value;
+			}
+			
+			for (int i = 0; i < truth.get(chunk_idx).size(); i++) {
+				interpolate_oId[sent_idx] = new int[n_words];
+				interpolate_oCount[sent_idx] = new double[n_words];
+	        	System.arraycopy(oId_buffer, 0, interpolate_oId[sent_idx], 0, n_words);
+	        	System.arraycopy(oCount_buffer, 0, interpolate_oCount[sent_idx], 0, n_words);
+				sent_idx++;
+			}
+		}
+ 
+		assert(label_trans_obj.truth.size() == obs_trans_obj.observationId.length);
+		assert(label_trans_obj.truth.size() == sent_idx);
+		assert(stateSeq.length == observationId.length);
+
+		double ratio = 0.1;
+		return new TranscriptionClass(label_trans_obj.truth,
+				obs_trans_obj.observationId, obs_trans_obj.observationCount,
+				interpolate_oId, interpolate_oCount, courseId)
+				.compute_interpolation(ratio);
+	}
 
 	public TranscriptionClass segment(int segmentType, int segment_len) {
 		if (segmentType == 0) {
-			TranscriptionClass segment_trans = new TranscriptionClass(truth,
-					observationId, observationCount, observationSlidesId,
+			return new TranscriptionClass(truth, observationId,
+					observationCount, observationSlidesId,
 					observationSlidesCount, courseId);
-			return segment_trans;
 		}
 
 		int n_segment = observationId.length;
@@ -549,10 +602,9 @@ public class TranscriptionClass {
 
 		if (counter_segs != n_segment) System.out.println("Error in TranscriptionClass Segment");
 		
-		TranscriptionClass segment_trans = new TranscriptionClass(new_truth,
-				newObservationId, newObservationCount, newObservationSlidesId,
+		return new TranscriptionClass(new_truth, newObservationId,
+				newObservationCount, newObservationSlidesId,
 				newObservationSlidesCount, courseId);
-		return segment_trans;
 	}
 
 	public void printResult(String[] hypo, double[][] alignedPosterior) {

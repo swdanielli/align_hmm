@@ -216,7 +216,7 @@ public class tbToTransNoParamTune {
 					interpolatedTrans = transObjArray.get(i);
 				else
 					interpolatedTrans = transObjArray.get(i)
-							.slidesInterpolation(slidesTransRatio);
+							.compute_interpolation(slidesTransRatio);
 				
 				double result[] = null;
 				result = alignTB(interpolatedTrans, textbookArray,
@@ -243,7 +243,7 @@ public class tbToTransNoParamTune {
 					System.out.println("transcription/slides : " + i);
 				
 				TranscriptionClass interpolatedTrans = transObjArray.get(i)
-						.slidesInterpolation(slidesTransRatio);
+						.compute_interpolation(slidesTransRatio);
 				
 				double result[] = null;
 				result = alignTB(interpolatedTrans, textbookArray,
