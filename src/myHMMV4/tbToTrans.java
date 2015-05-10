@@ -302,7 +302,7 @@ public class tbToTrans {
 			String decayStyle, int seg_len) {
 		switch (feaSelType) {
 		case 1:
-			double keywordWeight = 5;
+			double keywordWeight = 2;
 			tuneResult = tuneTransition(tuneResult, smoothing,
 					slidesTransRatio, tbTransRatio, adaptVersion, isUseHMM,
 					transObjArray, textbookArray, vocabSize, trainingStep,
@@ -345,8 +345,8 @@ public class tbToTrans {
 							Float.parseFloat(tags[0]),
 							Float.parseFloat(tags[1]), seg_len });
 		} else {
-			for (double transitionDecayForw : new double[] { 5, 2, 1, 0.3, 0.1 }) {
-				for (double transitionDecayBackw : new double[] { 5, 2, 1, 0.3, 0.1 }) {
+			for (double transitionDecayForw : new double[] { 1, 0.3, 0.1, 0.03 }) {
+				for (double transitionDecayBackw : new double[] { 1, 0.3, 0.1, 0.03 }) {
 					for (double initDecay : new double[] { 0.1, 0.03, 0.01 }) {
 						double result[] = paramTune(transObjArray,
 								textbookArray, vocabSize, smoothing,

@@ -256,7 +256,7 @@ public class slidesToTrans {
 			int evaluation, int seg_len) {
 		switch (feaSelType) {
 		case 1:
-			double keywordWeight = 5;
+			double keywordWeight = 2;
 			tuneResult = tuneTransition(tuneResult, smoothing,
 					slidesTransRatio, adaptVersion, isUseHMM, transObjArray,
 					slideDistributionSparseArray, vocabSize, trainingStep,

@@ -67,6 +67,9 @@ public class tb_slides_2_trans {
 
 	public static void main(String[] args) throws IOException {
 		int verbose = Integer.parseInt(args[6]);
+		/********************** TODO *************************/
+		verbose = 0;
+		/*****************************************************/
 		int adaptVersion = Integer.parseInt(args[7]);
 		if (adaptVersion != 4) {
 			adaptVersion = 1;
@@ -163,8 +166,8 @@ public class tb_slides_2_trans {
 		double[] result_tb = { 0.0 };
 
 		for (int cvIndex = 0; cvIndex < cvFold; cvIndex++) {
-			tuneConfiguration tuneResult_slides = null;			
-			tuneConfiguration tuneResult_tb = null;
+			List<tuneConfiguration> tuneResults_slides = new ArrayList<tuneConfiguration>();
+			List<tuneConfiguration> tuneResults_tb = new ArrayList<tuneConfiguration>();
 
 			List<TranscriptionClass> transObjs_train_slides = new ArrayList<TranscriptionClass>();
 			List<TranscriptionClass> transObjs_test_slides = new ArrayList<TranscriptionClass>();
@@ -209,8 +212,8 @@ public class tb_slides_2_trans {
 			double interpolation_weight = 0.1;
 
 			for (int co_train_iter = 0; co_train_iter < n_co_train_iter; co_train_iter++) {
-				tuneResult_slides = new tuneConfiguration(1);
-				tuneResult_tb = new tuneConfiguration(1);
+				tuneConfiguration tuneResult_slides = new tuneConfiguration(1);
+				tuneConfiguration tuneResult_tb = new tuneConfiguration(1);
 
 				for (double slidesTransRatio : new double[] { 0.3, 0.2, 0.1 }) {
 					System.out.println("slidesTransRatio: " + slidesTransRatio);
@@ -237,54 +240,75 @@ public class tb_slides_2_trans {
 						transObjs_train_slides,	tbTransRatio, adaptVersion, vocabSize,
 						trainingStep, -1, 0, ordinaryVocabSize, feaSelType, evaluation,
 						segmentType).transObjs;
+				
+				tuneResults_slides.add(tuneResult_slides);
+				tuneResults_tb.add(tuneResult_tb);
 			}
 			
 			System.out.println("========== Cross Validation Set " + cvIndex
 					+ " Result ==========");
-			/*
-			 * System.out.println(tuneResult.nConfigSet);
-			 * System.out.println(tuneResult.bestConfiguration.length);
-			 * System.out.println(tuneResult.bestConfiguration[0].length);
-			 */
-			for (int i = 0; i < tuneResult_slides.nConfigSet; i++) {
-				System.out.println("smoothing: " + tuneResult_slides.bestConfiguration[i][0]);
-				System.out.println("slidesTransRatio: "	+ tuneResult_slides.bestConfiguration[i][1]);
-				System.out.println("transition: " + tuneResult_slides.bestConfiguration[i][2]);
-				System.out.println("keywordWeight: " + tuneResult_slides.bestConfiguration[i][3]);
-				System.out.println("segment_length: " + tuneResult_slides.bestConfiguration[i][4]);
-				
-				
-				System.out.println("smoothing: " + tuneResult_tb.bestConfiguration[i][0]);
-				System.out.println("slidesTransRatio: "	+ tuneResult_tb.bestConfiguration[i][1]);
-				System.out.println("transitionDecayBackw: "	+ tuneResult_tb.bestConfiguration[i][2]);
-				System.out.println("transitionDecayForw: " + tuneResult_tb.bestConfiguration[i][3]);
-				System.out.println("initDecay: " + tuneResult_tb.bestConfiguration[i][4]);
-				System.out.println("keywordWeight: " + tuneResult_tb.bestConfiguration[i][5]);
-				System.out.println("decayStyle: "
-								+ Integer.toString((int) tuneResult_tb.bestConfiguration[i][6])
-								+ "_"
-								+ Integer.toString((int) tuneResult_tb.bestConfiguration[i][7]));
-				System.out.println("segment_length: " + tuneResult_tb.bestConfiguration[i][8]);
+			for (int i = 0; i < tuneResults_slides.get(0).nConfigSet; i++) {
+				for (int co_train_iter = 0; co_train_iter < n_co_train_iter-1; co_train_iter++) {
+					System.out.println("========== Co-train iter: " + (co_train_iter+1) + " ==========");
+					System.out.println("smoothing: " + tuneResults_slides.get(co_train_iter).bestConfiguration[i][0]);
+					System.out.println("slidesTransRatio: "	+ tuneResults_slides.get(co_train_iter).bestConfiguration[i][1]);
+					System.out.println("transition: " + tuneResults_slides.get(co_train_iter).bestConfiguration[i][2]);
+					System.out.println("keywordWeight: " + tuneResults_slides.get(co_train_iter).bestConfiguration[i][3]);
+					System.out.println("segment_length: " + tuneResults_slides.get(co_train_iter).bestConfiguration[i][4]);
+					
+					
+					System.out.println("smoothing: " + tuneResults_tb.get(co_train_iter).bestConfiguration[i][0]);
+					System.out.println("slidesTransRatio: "	+ tuneResults_tb.get(co_train_iter).bestConfiguration[i][1]);
+					System.out.println("transitionDecayBackw: "	+ tuneResults_tb.get(co_train_iter).bestConfiguration[i][2]);
+					System.out.println("transitionDecayForw: " + tuneResults_tb.get(co_train_iter).bestConfiguration[i][3]);
+					System.out.println("initDecay: " + tuneResults_tb.get(co_train_iter).bestConfiguration[i][4]);
+					System.out.println("keywordWeight: " + tuneResults_tb.get(co_train_iter).bestConfiguration[i][5]);
+					System.out.println("decayStyle: "
+									+ Integer.toString((int) tuneResults_tb.get(co_train_iter).bestConfiguration[i][6])
+									+ "_"
+									+ Integer.toString((int) tuneResults_tb.get(co_train_iter).bestConfiguration[i][7]));
+					System.out.println("segment_length: " + tuneResults_tb.get(co_train_iter).bestConfiguration[i][8]);
 
-				for (int co_train_iter = 0; co_train_iter < n_co_train_iter; co_train_iter++) {
-					transObjs_test_tb = interpolate_slides_to_trans(tuneResult_slides,
-							transObjs_test_slides, slideDistributionSparseTest,
-							interpolation_weight, transObjs_test_tb, adaptVersion,
-							vocabSize, trainingStep, -1, i, ordinaryVocabSize,
+					transObjs_test_tb = interpolate_slides_to_trans(
+							tuneResults_slides.get(co_train_iter), transObjs_test_slides,
+							slideDistributionSparseTest, interpolation_weight, transObjs_test_tb,
+							adaptVersion, vocabSize, trainingStep, -1, i, ordinaryVocabSize,
 							feaSelType, evaluation, segmentType).transObjs;
-					transObjs_test_slides = interpolate_tb_to_trans(tuneResult_tb,
-							transObjs_test_tb, textbookModels, interpolation_weight,
-							transObjs_test_slides, tbTransRatio, adaptVersion, vocabSize,
-							trainingStep, -1, i, ordinaryVocabSize, feaSelType,
+					transObjs_test_slides = interpolate_tb_to_trans(
+							tuneResults_tb.get(co_train_iter), transObjs_test_tb, textbookModels,
+							interpolation_weight, transObjs_test_slides, tbTransRatio, adaptVersion,
+							vocabSize, trainingStep, -1, i, ordinaryVocabSize, feaSelType,
 							evaluation, segmentType).transObjs;
 				}
 
-				result_slides[i] += interpolate_slides_to_trans(tuneResult_slides,
+				System.out.println("========== Co-train iter: " + (n_co_train_iter) + " ==========");
+				System.out.println("smoothing: " + tuneResults_slides.get(n_co_train_iter-1).bestConfiguration[i][0]);
+				System.out.println("slidesTransRatio: "	+ tuneResults_slides.get(n_co_train_iter-1).bestConfiguration[i][1]);
+				System.out.println("transition: " + tuneResults_slides.get(n_co_train_iter-1).bestConfiguration[i][2]);
+				System.out.println("keywordWeight: " + tuneResults_slides.get(n_co_train_iter-1).bestConfiguration[i][3]);
+				System.out.println("segment_length: " + tuneResults_slides.get(n_co_train_iter-1).bestConfiguration[i][4]);
+				
+				
+				System.out.println("smoothing: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][0]);
+				System.out.println("slidesTransRatio: "	+ tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][1]);
+				System.out.println("transitionDecayBackw: "	+ tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][2]);
+				System.out.println("transitionDecayForw: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][3]);
+				System.out.println("initDecay: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][4]);
+				System.out.println("keywordWeight: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][5]);
+				System.out.println("decayStyle: "
+								+ Integer.toString((int) tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][6])
+								+ "_"
+								+ Integer.toString((int) tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][7]));
+				System.out.println("segment_length: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][8]);
+
+				result_slides[i] += interpolate_slides_to_trans(
+						tuneResults_slides.get(n_co_train_iter-1),
 						transObjs_test_slides, slideDistributionSparseTest,
 						interpolation_weight, transObjs_test_tb, adaptVersion,
 						vocabSize, trainingStep, verbose, i, ordinaryVocabSize,
 						feaSelType, evaluation, segmentType).result[i];
-				result_tb[i] += interpolate_tb_to_trans(tuneResult_tb,
+				result_tb[i] += interpolate_tb_to_trans(
+						tuneResults_tb.get(n_co_train_iter-1),
 						transObjs_test_tb, textbookModels, interpolation_weight,
 						transObjs_test_slides, tbTransRatio, adaptVersion, vocabSize,
 						trainingStep, verbose, i, ordinaryVocabSize, feaSelType,
@@ -303,8 +327,6 @@ public class tb_slides_2_trans {
 			System.out.println(result_tb[i] / cvFold);
 	}
 	
-	
-
 	@SuppressWarnings("unchecked")
 	public static Interpolate_result interpolate_slides_to_trans(
 			tuneConfiguration tuneResult, List<TranscriptionClass> transObjs_slides,
