@@ -366,11 +366,9 @@ public class TranscriptionClass {
 				if (count.containsKey(observationId[i][j])) {
 					count.put(observationId[i][j],
 							count.get(observationId[i][j])
-									+ observationCount[i][j]
-									* (1 - ratio));
+									+ observationCount[i][j]);
 				} else {
-					count.put(observationId[i][j], observationCount[i][j]
-							* (1 - ratio));
+					count.put(observationId[i][j], observationCount[i][j]);
 				}
 			}
 
@@ -451,7 +449,7 @@ public class TranscriptionClass {
 	}
 	
 	public TranscriptionClass interpolate(int[] stateSeq, int[][] oId,
-			double[][] oCount, TranscriptionClass obs_trans_obj, TranscriptionClass label_trans_obj) {
+			double[][] oCount, TranscriptionClass ref_trans_obj) {
 		List<ArrayList<Pair>> pairs_list = new ArrayList<ArrayList<Pair>>();
 		int top_n = 49; /* Pick the 50 most frequent words */
 
@@ -472,8 +470,8 @@ public class TranscriptionClass {
 			pairs_list.add((ArrayList<Pair>)  pairs);
 		}
 
-		int interpolate_oId[][] = new int[label_trans_obj.truth.size()][];
-		double interpolate_oCount[][] = new double[label_trans_obj.truth.size()][];
+		int interpolate_oId[][] = new int[ref_trans_obj.truth.size()][];
+		double interpolate_oCount[][] = new double[ref_trans_obj.truth.size()][];
 		int sent_idx = 0;
 		for (int chunk_idx = 0; chunk_idx < stateSeq.length; chunk_idx++) {
 			int n_words = pairs_list.get(stateSeq[chunk_idx]).size();
@@ -493,13 +491,13 @@ public class TranscriptionClass {
 			}
 		}
  
-		assert(label_trans_obj.truth.size() == obs_trans_obj.observationId.length);
-		assert(label_trans_obj.truth.size() == sent_idx);
+		assert(ref_trans_obj.truth.size() == ref_trans_obj.observationId.length);
+		assert(ref_trans_obj.truth.size() == sent_idx);
 		assert(stateSeq.length == observationId.length);
 
 		double ratio = 0.1;
-		return new TranscriptionClass(label_trans_obj.truth,
-				obs_trans_obj.observationId, obs_trans_obj.observationCount,
+		return new TranscriptionClass(ref_trans_obj.truth,
+				ref_trans_obj.observationId, ref_trans_obj.observationCount,
 				interpolate_oId, interpolate_oCount, courseId)
 				.compute_interpolation(ratio);
 	}

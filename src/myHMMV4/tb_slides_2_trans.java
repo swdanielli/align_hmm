@@ -350,7 +350,7 @@ public class tb_slides_2_trans {
 				tuneResult.bestConfiguration[config_set_id][1], adaptVersion,
 				tuneResult.bestConfiguration[config_set_id][2], verbose,
 				ordinaryVocabSize, tuneResult.bestConfiguration[config_set_id][3],
-				evaluation, transObjs_slides, transObjs_tb);
+				evaluation, transObjs_tb);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -380,6 +380,6 @@ public class tb_slides_2_trans {
 				Integer.toString((int) tuneResult.bestConfiguration[config_set_id][6])
 						+ "_"
 						+ Integer.toString((int) tuneResult.bestConfiguration[config_set_id][7]),
-				transObjs_tb, transObjs_slides);
+				transObjs_slides);
 	}
 }
