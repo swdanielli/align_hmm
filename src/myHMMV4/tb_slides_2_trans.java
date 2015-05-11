@@ -291,12 +291,15 @@ public class tb_slides_2_trans {
 								+ Integer.toString((int) tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][7]));
 				System.out.println("segment_length: " + tuneResults_tb.get(n_co_train_iter-1).bestConfiguration[i][8]);
 
-				result_slides[i] += interpolate_slides_to_trans(
+				Interpolate_result hmm_result = interpolate_slides_to_trans(
 						tuneResults_slides.get(n_co_train_iter-1),
 						transObjs_test_slides, slideDistributionSparseTest,
 						interpolation_weight, transObjs_test_tb, adaptVersion,
 						vocabSize, trainingStep, verbose, i, ordinaryVocabSize,
-						feaSelType, evaluation, segmentType).result[i];
+						feaSelType, evaluation, segmentType);
+				result_slides[i] += hmm_result.result[i];
+				transObjs_test_tb = hmm_result.transObjs;
+	
 				result_tb[i] += interpolate_tb_to_trans(
 						tuneResults_tb.get(n_co_train_iter-1),
 						transObjs_test_tb, textbookModels, interpolation_weight,
@@ -337,7 +340,8 @@ public class tb_slides_2_trans {
 				tuneResult.bestConfiguration[config_set_id][1], adaptVersion,
 				tuneResult.bestConfiguration[config_set_id][2], verbose,
 				ordinaryVocabSize, tuneResult.bestConfiguration[config_set_id][3],
-				evaluation, transObjs_slides, transObjs_tb);
+				evaluation, transObjs_tb);
+		/* Don't use training data for interpolation */
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -367,6 +371,7 @@ public class tb_slides_2_trans {
 				Integer.toString((int) tuneResult.bestConfiguration[config_set_id][6])
 						+ "_"
 						+ Integer.toString((int) tuneResult.bestConfiguration[config_set_id][7]),
-				transObjs_tb, transObjs_slides);
+				transObjs_slides);
+		/* Don't use training data for interpolation */
 	}
 }

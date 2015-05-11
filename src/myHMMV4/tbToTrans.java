@@ -381,7 +381,7 @@ public class tbToTrans {
 			String decayStyle, List<TranscriptionClass>... ref_trans_objs) {
 		List<TranscriptionClass> interpolated_trans = null;
 		boolean is_interpolation = false;
-		if (ref_trans_objs.length == 2) {
+		if (ref_trans_objs.length == 1) {
 			is_interpolation = true;
 			interpolated_trans = new ArrayList<TranscriptionClass>();
 		}
@@ -398,17 +398,15 @@ public class tbToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				TranscriptionClass obs_trans_obj = null;
-				TranscriptionClass label_trans_obj = null;
+				TranscriptionClass ref_trans_obj = null;
 				if (is_interpolation) {
-					obs_trans_obj = ref_trans_objs[0].get(i);
-					label_trans_obj = ref_trans_objs[1].get(i);
+					ref_trans_obj = ref_trans_objs[0].get(i);
 				}
 				Interpolate_result hmm_result = alignTB(transObjArray.get(i), textbookArray, 
 						vocabSize, smoothing, trainingStep, tbTransRatio, adaptVersion,
 						transitionDecayBackw, transitionDecayForw, initDecay,
 						verbose, ordinaryVocabSize, keywordWeight, evaluation,
-						decayStyle, obs_trans_obj, label_trans_obj);
+						decayStyle, ref_trans_obj);
 
 				accSum += hmm_result.result[0];
 				sentNum += hmm_result.result[1];
@@ -426,17 +424,15 @@ public class tbToTrans {
 				if (verbose >= 1)
 					System.out.println("transcription/slides : " + i);
 
-				TranscriptionClass obs_trans_obj = null;
-				TranscriptionClass label_trans_obj = null;
+				TranscriptionClass ref_trans_obj = null;
 				if (is_interpolation) {
-					obs_trans_obj = ref_trans_objs[0].get(i);
-					label_trans_obj = ref_trans_objs[1].get(i);
+					ref_trans_obj = ref_trans_objs[0].get(i);
 				}
 				Interpolate_result hmm_result = alignTB(transObjArray.get(i), textbookArray, 
 						vocabSize, smoothing, trainingStep, tbTransRatio, adaptVersion,
 						transitionDecayBackw, transitionDecayForw, initDecay,
 						verbose, ordinaryVocabSize, keywordWeight, evaluation,
-						decayStyle, obs_trans_obj, label_trans_obj);
+						decayStyle, ref_trans_obj);
 
 				ll += hmm_result.result[0];
 				if (is_interpolation) interpolated_trans.add(hmm_result.transObjs.get(0));
@@ -462,7 +458,7 @@ public class tbToTrans {
 			TranscriptionClass... ref_trans_obj) {
 		List<TranscriptionClass> interpolated_trans = null;
 		boolean is_interpolation = false;
-		if (ref_trans_obj.length == 2 && ref_trans_obj[0] != null && ref_trans_obj[1] != null) {
+		if (ref_trans_obj.length == 1 && ref_trans_obj[0] != null) {
 			is_interpolation = true;
 			interpolated_trans = new ArrayList<TranscriptionClass>();
 		}
@@ -598,8 +594,7 @@ public class tbToTrans {
 
 		if (is_interpolation) {
 			interpolated_trans.add(transObj.interpolate(stateSeq,
-					observationId, observationCount, ref_trans_obj[0],
-					ref_trans_obj[1]));
+					observationId, observationCount, ref_trans_obj[0]));
 		}
 
 		/* evaluation -> 1 accuracy; 0 likelihood */
